@@ -356,11 +356,24 @@ def compile_expr(expr: dict, ctx: CodegenContext) -> None:
             raise ValueError("Port in (in ...) must be a number literal")
         ctx.emit(Opcode.IN, AddressingMode.IMMEDIATE, port["value"])
         return
+    if etype == "out":
+        compile_out(expr, ctx)
+        return
+    if etype == "print":
+        compile_print(expr["value"], ctx)
+        return
     if etype == "call":
         compile_call(expr, ctx)
         return
     if etype == "binop":
         compile_binop(expr, ctx)
+        return
+    if etype == "return":
+        compile_expr(expr["expr"], ctx)
+        if ctx.current_func is None:
+            ctx.emit(Opcode.HALT, AddressingMode.IMMEDIATE, 0)
+        else:
+            ctx.emit(Opcode.RET, AddressingMode.IMMEDIATE, 0)
         return
     if etype == "if":
         compile_if(expr, ctx)
@@ -549,8 +562,13 @@ def main():
 
     if target_asm:
         with open(target_asm, "w", encoding="utf-8") as asmf:
+            asmf.write("ADDR - WORD - ASM\n")
+            asmf.write("-----------------------------\n")
             for idx, inst in enumerate(instructions):
-                asmf.write(f"{idx:04X} : {inst.opcode.name} {inst.mode.name} {inst.arg}\n")
+                word = inst.encode()
+                asmf.write(
+                    f"{idx:04X} - {word:08X} - {inst.opcode.name} {inst.mode.name} {inst.arg}\n"
+                )
 
 if __name__ == '__main__':
     main()

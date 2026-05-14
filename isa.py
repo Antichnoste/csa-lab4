@@ -68,14 +68,12 @@ class Instruction:
 def write_binary(filename: str, instructions: List[Instruction], data_section: List[int]):
     """
     Формат бинарного файла:
-    [4 байта] - Магическое число 'LISP'
     [4 байта] - Количество инструкций (N)
     [4 байта] - Количество слов данных (M)
     [N * 4 байт] - Сами инструкции
     [M * 4 байт] - Сами данные
     """
     with open(filename, "wb") as f:
-        f.write(b"LISP")
         f.write(struct.pack(">II", len(instructions), len(data_section)))
         for inst in instructions:
             f.write(struct.pack(">I", inst.encode()))
@@ -85,10 +83,6 @@ def write_binary(filename: str, instructions: List[Instruction], data_section: L
 
 def read_binary(filename: str) -> Tuple[List[Instruction], List[int]]:
     with open(filename, "rb") as f:
-        magic = f.read(4)
-        if magic != b"LISP":
-            raise ValueError("Invalid binary file format")
-            
         n_inst, n_data = struct.unpack(">II", f.read(8))
         
         instructions = []

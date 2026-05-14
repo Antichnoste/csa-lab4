@@ -22,7 +22,7 @@ class ID_EX_Latch:
     valid: bool = False
 
 class Machine:
-    def __init__(self, instructions: list[Instruction], data_section: list[int], input_buffer: list[int], trace: bool = False):
+    def __init__(self, instructions: list[Instruction], data_section: list[int], input_buffer: list[int], trace: bool = False, micro_trace: bool = False):
         self.imem = instructions
         self.dmem = data_section + [0] * (65536 - len(data_section))
         self.acc = 0
@@ -49,6 +49,7 @@ class Machine:
         self.ex_pc = 0
         self.ex_tmp = 0
         self.trace = trace
+        self.micro_trace = micro_trace
 
     def tick(self):
         self.tick_counter += 1
@@ -72,6 +73,9 @@ class Machine:
             self.ex_pc = self.id_ex.pc
             self.ex_total = self.cu.get_step_count(self.ex_op, self.ex_mode)
             self.ex_tmp = 0
+
+        if self.micro_trace:
+            self._print_micro_trace()
 
         op = self.ex_op
         mode = self.ex_mode
@@ -300,14 +304,29 @@ class Machine:
         print(f"IF: {if_inst} | ID: {id_inst} | EX: {ex_inst}")
         print("-" * 72)
 
-def run_simulation(target_bin: str, input_file: str, trace: bool = False):
+    def _print_micro_trace(self) -> None:
+        steps = self.cu.get_micro_steps(self.ex_op, self.ex_mode)
+        step_idx = min(self.ex_step, len(steps) - 1)
+        sig = steps[step_idx]
+        uaddr = self.cu.get_micro_uaddr(self.ex_op, step_idx)
+        uword = sig.encode()
+        print(
+            f"[uTICK {self.tick_counter:04}] uPC={uaddr:02X} OP={self.ex_op.name} MODE={self.ex_mode.name} "
+            f"UWORD=0x{uword:06X} STEP={step_idx + 1}/{len(steps)}"
+        )
+        print(
+            f"LATCH={sig.latch_ctrl} ALU={sig.alu_op} MUXA={sig.mux_a} MUXB={sig.mux_b} "
+            f"MEM={sig.mem_port} REG={sig.reg_en} COND={sig.cond} NEXT={sig.next_micro_addr}"
+        )
+
+def run_simulation(target_bin: str, input_file: str, trace: bool = False, micro_trace: bool = False):
     instructions, data_section = read_binary(target_bin)
     input_buffer = []
     if input_file:
         with open(input_file, 'r', encoding='utf-8') as f:
             input_buffer = [ord(char) for char in f.read()]
             
-    machine = Machine(instructions, data_section, input_buffer, trace=trace)
+    machine = Machine(instructions, data_section, input_buffer, trace=trace, micro_trace=micro_trace)
     print("Start execution...")
     while not machine.halted and machine.tick_counter < 1000:
         machine.tick()
@@ -316,12 +335,13 @@ def run_simulation(target_bin: str, input_file: str, trace: bool = False):
         print("Output:", "".join(chr(c) for c in machine.output_buffer))
 
 def main():
-    args = [arg for arg in sys.argv[1:] if arg != "--trace"]
     trace = "--trace" in sys.argv[1:]
+    micro_trace = "--micro-trace" in sys.argv[1:]
+    args = [arg for arg in sys.argv[1:] if arg not in ("--trace", "--micro-trace")]
     if len(args) < 1:
-        print("Usage: python cpu_sim.py <target.bin> [input.txt] [--trace]")
+        print("Usage: python cpu_sim.py <target.bin> [input.txt] [--trace] [--micro-trace]")
         return
-    run_simulation(args[0], args[1] if len(args) > 1 else "", trace=trace)
+    run_simulation(args[0], args[1] if len(args) > 1 else "", trace=trace, micro_trace=micro_trace)
 
 if __name__ == '__main__':
     main()
