@@ -1,6 +1,5 @@
 import sys
 from dataclasses import dataclass, field
-from typing import List
 
 from isa import AddressingMode, Instruction, Opcode, read_binary
 
