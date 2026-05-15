@@ -1,6 +1,12 @@
-(defvar ch 0)
-(loop
-  (setq ch (in 0))
-  (if (= ch 0)
-      (return 0)
-      (out 0 ch)))
+(defvar char 0)
+
+(defun cat ()
+  (loop
+    (setq char (in 0))
+    ; 0 означает конец файла (EOF)
+    (if (= char 0) (return 0) 0)
+    (out 1 char)
+  )
+)
+
+(cat)

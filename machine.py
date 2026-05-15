@@ -278,10 +278,10 @@ class Machine:
             return False, True
 
         if op == Opcode.IN:
-            port = arg
-            if port != 0:
-                self.acc = 0
-            elif self.input_buffer:
+            #port = arg
+            #if port != 0:
+            #    self.acc = 0
+            if self.input_buffer:
                 self.acc = self._to_signed32(self.input_buffer.pop(0))
             else:
                 self.acc = 0
@@ -439,7 +439,7 @@ def run_simulation(target_bin: str, input_file: str, trace: bool = False, micro_
             
     machine = Machine(instructions, data_section, input_buffer, trace=trace, micro_trace=micro_trace)
     print("Start execution...")
-    while not machine.halted and machine.tick_counter < 1000:
+    while not machine.halted and machine.tick_counter < 10_000_000:
         machine.tick()
     print(f"Halted! Ticks: {machine.tick_counter}")
     if machine.output_buffer:

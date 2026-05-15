@@ -71,7 +71,9 @@ def ast_to_expr(ast):
         "return": _parse_return,
         "print": _parse_print,
         "in": _parse_in,
-        "out": _parse_out
+        "out": _parse_out,
+        "read-mem": lambda args: {"type": "read-mem", "addr": ast_to_expr(args[0])},
+        "write-mem": lambda args: {"type": "write-mem", "addr": ast_to_expr(args[0]), "val": ast_to_expr(args[1])}
     }
 
     if head in ("+", "-", "*", "/", "mod", "=", "!=", "<", ">"):
@@ -319,12 +321,18 @@ def compile_stmt(stmt: dict, ctx: CodegenContext) -> None:
         else:
             ctx.emit(Opcode.RET, AddressingMode.IMMEDIATE, 0)
         return
-    if stype in ("binop", "call", "in", "number", "string", "var"):
+    if stype in ("binop", "call", "in", "number", "string", "var", "read-mem", "write-mem"):
         compile_expr(stmt, ctx)
         return
 
 def compile_expr(expr: dict, ctx: CodegenContext) -> None:
     etype = expr.get("type")
+
+    if etype == "setq":
+        compile_expr(expr["expr"], ctx)
+        emit_store_var(ctx, expr["name"])
+        return
+
     if etype == "number":
         ctx.emit(Opcode.LD, AddressingMode.IMMEDIATE, expr["value"])
         return
@@ -365,6 +373,19 @@ def compile_expr(expr: dict, ctx: CodegenContext) -> None:
         return
     if etype == "loop":
         compile_loop(expr, ctx)
+        return
+    if etype == "read-mem":
+        compile_expr(expr["addr"], ctx)
+        ctx.emit(Opcode.ST, AddressingMode.DIRECT, ctx.env["scratch_ptr"])
+        ctx.emit(Opcode.LD, AddressingMode.INDIRECT, ctx.env["scratch_ptr"])
+        return
+    if etype == "write-mem":
+        compile_expr(expr["val"], ctx)
+        ctx.emit_push()
+        compile_expr(expr["addr"], ctx)
+        ctx.emit(Opcode.ST, AddressingMode.DIRECT, ctx.env["scratch_ptr"])
+        ctx.emit_pop()
+        ctx.emit(Opcode.ST, AddressingMode.INDIRECT, ctx.env["scratch_ptr"])
         return
     raise ValueError(f"Unknown expression type: {etype}")
 
@@ -432,8 +453,6 @@ def compile_cmp(expr: dict, ctx: CodegenContext) -> None:
     ctx.emit_push()
     compile_expr(expr["left"], ctx)
     ctx.emit(Opcode.CMP, AddressingMode.RELATIVE, 1)
-    ctx.emit(Opcode.ST, AddressingMode.RELATIVE, 1)
-    ctx.emit_pop()
 
     jmp_true = {
         "=": Opcode.JZ,
@@ -450,6 +469,9 @@ def compile_cmp(expr: dict, ctx: CodegenContext) -> None:
     end_addr = len(ctx.code)
     ctx.patch(jmp_true_idx, true_addr)
     ctx.patch(jmp_end_idx, end_addr)
+    ctx.emit(Opcode.ST, AddressingMode.DIRECT, ctx.env["scratch_ret"])
+    ctx.emit_pop()
+    ctx.emit(Opcode.LD, AddressingMode.DIRECT, ctx.env["scratch_ret"])
 
 def compile_call(expr: dict, ctx: CodegenContext) -> None:
     args = expr.get("args", [])

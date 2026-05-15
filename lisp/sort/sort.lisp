@@ -1,0 +1,57 @@
+(defvar c 0)
+(defvar arr-base 5000)
+(defvar arr-count 0)
+(defvar sort-tmp 0)
+
+(defun read-array ()
+  (loop
+    (setq c (in 0))
+    (if (= c 0) (return 0) 0)
+    (if (= c 10) (return 0) 0)
+    (if (= c 13) (return 0) 0)
+    (if (= c 32) 0 (write-mem (+ arr-base arr-count) c))
+    (if (= c 32) 0 (setq arr-count (+ arr-count 1)))
+  )
+)
+
+(defun swap (addr1 addr2)
+  (setq sort-tmp (read-mem addr1))
+  (write-mem addr1 (read-mem addr2))
+  (write-mem addr2 sort-tmp)
+)
+
+(defvar sp-j 0)
+(defun sort-pass (pass-idx)
+  (setq sp-j 0)
+  (loop
+    (if (= sp-j (- arr-count (+ pass-idx 1))) (return 0) 0)
+    (if (> (read-mem (+ arr-base sp-j)) (read-mem (+ arr-base (+ sp-j 1))))
+        (swap (+ arr-base sp-j) (+ arr-base (+ sp-j 1)))
+        0)
+    (setq sp-j (+ sp-j 1))
+  )
+)
+
+(defvar s-i 0)
+(defun sort ()
+  (setq s-i 0)
+  (loop
+    (if (= s-i arr-count) (return 0) 0)
+    (sort-pass s-i)
+    (setq s-i (+ s-i 1))
+  )
+)
+
+(defvar pa-i 0)
+(defun print-array ()
+  (setq pa-i 0)
+  (loop
+    (if (= pa-i arr-count) (return 0) 0)
+    (out 1 (read-mem (+ arr-base pa-i)))
+    (setq pa-i (+ pa-i 1))
+  )
+)
+
+(read-array)
+(sort)
+(print-array)
