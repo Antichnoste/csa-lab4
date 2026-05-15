@@ -12,12 +12,12 @@
 (print-num (+ 1 2 3 4))
 (print "\n")
 
-; 2. Проверка 'if' как выражения
+; проверка 'if' как выражения
 (print "    If as expression: ")
 (print-num (if p 111 222))
 (print "\n")
 
-; Проверка 'setq' как выражения
+; проверка 'setq' как выражения
 (print "    (5 + (x=10)) = ")
 (print-num (+ 5 (setq x 10)))
 (print "\n")
