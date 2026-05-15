@@ -50,7 +50,7 @@ class Instruction:
         """
         enc_opcode = (self.opcode.value & 0xFF) << 24
         enc_mode = (self.mode.value & 0x3) << 22
-        enc_arg = self.arg & 0x3FFFFF  # Маска 22 бита для избавления от знакового расширения в отрицательных числах
+        enc_arg = self.arg & 0x3FFFFF
         return enc_opcode | enc_mode | enc_arg
 
     @classmethod
@@ -59,7 +59,6 @@ class Instruction:
         opcode_val = (word >> 24) & 0xFF
         mode_val = (word >> 22) & 0x3
         arg = word & 0x3FFFFF
-        # Восстанавливаем знак для 22-битного числа
         if arg & (1 << 21):
             arg -= (1 << 22)
             
@@ -78,7 +77,6 @@ def write_binary(filename: str, instructions: List[Instruction], data_section: L
         for inst in instructions:
             f.write(struct.pack(">I", inst.encode()))
         for data_word in data_section:
-            # Данные также 32-битные слова
             f.write(struct.pack(">i", data_word))
 
 def read_binary(filename: str) -> Tuple[List[Instruction], List[int]]:

@@ -2,7 +2,6 @@
 (defvar pn-count 0)
 (defvar pn-rem 0)
 
-; Рекурсивная печать числа (никаких циклов и багов с return!)
 (defun print-num-rec (n)
   (if (> n 0)
       (print-num-rec (/ n 10))
@@ -36,8 +35,6 @@
   (loop
     (if (< il-j il-i) (return 0) 0)
     (setq prod (* il-i il-j))
-    ; Мощная оптимизация: если произведение уже меньше максимального,
-    ; дальше цикл можно не продолжать!
     (if (< prod max-pal) (return 0) 0)
     
     (if (= prod (reverse prod))
@@ -56,6 +53,4 @@
   )
 )
 
-(print "Euler 4 (Max Palindrome): ")
 (print-num (solve 999))
-(print "\n")

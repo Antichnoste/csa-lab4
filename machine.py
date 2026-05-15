@@ -278,9 +278,9 @@ class Machine:
             return False, True
 
         if op == Opcode.IN:
-            #port = arg
-            #if port != 0:
-            #    self.acc = 0
+            port = arg
+            if port != 0:
+                self.acc = 0
             if self.input_buffer:
                 self.acc = self._to_signed32(self.input_buffer.pop(0))
             else:

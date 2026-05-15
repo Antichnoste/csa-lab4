@@ -2,7 +2,6 @@
 (defvar pn-count 0)
 (defvar pn-rem 0)
 
-; Рекурсивная печать числа (никаких циклов и багов с return!)
 (defun print-num-rec (n)
   (if (> n 0)
       (print-num-rec (/ n 10))
@@ -19,14 +18,11 @@
   )
 )
 
-; Хвостовая рекурсия (аккумулятор передается через стек)
 (defun fact (n acc)
   (if (= n 0)
       (return acc)
-      (fact (- n 1) (* acc n)) ; Рекурсивный вызов
+      (fact (- n 1) (* acc n))
   )
 )
 
-(print "Factorial of 6 is: ")
 (print-num (fact 6 1))
-(print "\n")

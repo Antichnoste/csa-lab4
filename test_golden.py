@@ -35,16 +35,11 @@ def test_pipeline(golden, monkeypatch):
 
         machine_stdout = io.StringIO()
         with contextlib.redirect_stdout(machine_stdout):
-            # Запускаем симуляцию
             run_simulation(target_bin, input_txt, trace=True, micro_trace=False)
 
-        # ==========================================
-        # ОБРЕЗКА ОГРОМНОГО ЛОГА
-        # ==========================================
         raw_log = machine_stdout.getvalue()
         lines = raw_log.splitlines()
         
-        # Если лог больше 200 строк, берем начало и конец
         if len(lines) > 200:
             truncated_log = "\n".join(
                 lines[:100] + 
@@ -54,6 +49,5 @@ def test_pipeline(golden, monkeypatch):
         else:
             truncated_log = raw_log
 
-        # Сравниваем с эталоном
         assert asm_code == golden.out["out_code"]
         assert truncated_log == golden.out["out_log"]
