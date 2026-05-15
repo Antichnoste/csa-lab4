@@ -96,8 +96,19 @@ def _parse_defun(args):
     return {"type": "defun", "name": args[0], "params": args[1], "body": [ast_to_expr(b) for b in args[2:]]}
 
 def _parse_binop(op, args):
-    left, right = args
-    return {"type": "binop", "op": op, "left": ast_to_expr(left), "right": ast_to_expr(right)}
+    if len(args) < 2:
+        raise ValueError(f"Оператор {op} требует как минимум 2 аргумента")
+    
+    res = ast_to_expr(args[0])
+    
+    for i in range(1, len(args)):
+        res = {
+            "type": "binop",
+            "op": op,
+            "left": res,
+            "right": ast_to_expr(args[i]),
+        }
+    return res
 
 def _parse_if(args):
     return {
