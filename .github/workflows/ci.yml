@@ -8,10 +8,6 @@ jobs:
   test-golden:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: ЛР_4
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
