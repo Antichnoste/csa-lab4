@@ -1,4 +1,35 @@
 in_stdin: ''
+
+source_code: |-
+  (defvar pn-rev 0)
+  (defvar pn-count 0)
+  (defvar pn-rem 0)
+
+  (defun print-num-rec (n)
+    (if (> n 0)
+        (print-num-rec (/ n 10))
+        0)
+    (if (> n 0)
+        (out 1 (+ (mod n 10) 48))
+        0)
+  )
+
+  (defun print-num (n)
+    (if (= n 0)
+        (out 1 48)
+        (print-num-rec n)
+    )
+  )
+
+  (defun fact (n acc)
+    (if (= n 0)
+        (return acc)
+        (fact (- n 1) (* acc n))
+    )
+  )
+
+  (print-num (fact 6 1))
+
 out_code: |
   ADDR - WORD - ASM
   -----------------------------

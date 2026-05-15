@@ -1,4 +1,9 @@
 in_stdin: ''
+
+source_code: |
+  (defvar msg "Hello, World!")
+  (print msg)
+
 out_code: |
   ADDR - WORD - ASM
   -----------------------------

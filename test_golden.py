@@ -16,6 +16,9 @@ def test_pipeline(golden, monkeypatch):
     if not os.path.exists(source_path):
         pytest.fail(f"Исходный файл не найден по пути: {source_path}")
 
+    with open(source_path, "r", encoding="utf-8") as f:
+        source_code = f.read()
+
     in_stdin = golden.get("in_stdin", "")
 
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -49,5 +52,6 @@ def test_pipeline(golden, monkeypatch):
         else:
             truncated_log = raw_log
 
-        assert asm_code == golden.out["out_code"]
-        assert truncated_log == golden.out["out_log"]
+    assert source_code == golden.out["source_code"]
+    assert asm_code == golden.out["out_code"]
+    assert truncated_log == golden.out["out_log"]
