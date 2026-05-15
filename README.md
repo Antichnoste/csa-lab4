@@ -460,6 +460,6 @@ python machine.py lisp/tail_recursion/tail_recursion.bin --trace
 Ожидаемый вывод:
 ```text
 Start execution...
-Halted! Ticks: 899
-Output: Factorial of 6 is: 720
+Halted! Ticks: 661
+Output: 720
 ```
