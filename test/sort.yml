@@ -58,7 +58,7 @@ source_code: |-
   (read-array)
   (sort)
   (print-array)
-  
+
 out_code: |
   ADDR - WORD - ASM
   -----------------------------

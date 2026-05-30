@@ -1,7 +1,3 @@
-(defvar pn-rev 0)
-(defvar pn-count 0)
-(defvar pn-rem 0)
-
 (defun print-num-rec (n)
   (if (> n 0)
       (print-num-rec (/ n 10))

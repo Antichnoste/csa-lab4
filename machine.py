@@ -164,12 +164,20 @@ class Machine:
     def tick(self):
         self.tick_counter += 1
         stall, flush = False, False
-        if self.id_ex.valid: stall, flush = self.ex_stage()
-        if self.if_id.valid and not stall: stall = self.id_stage() or stall
-        if not stall and not flush: self.if_stage()
+
+        if self.id_ex.valid: 
+            stall, flush = self.ex_stage()
+
+        if self.if_id.valid and not stall:
+            stall = self.id_stage() or stall
+
+        if not stall and not flush: 
+            self.if_stage()
+
         if flush:
             self.if_id.valid = False
             self.id_ex.valid = False
+            
         if self.trace:
             self._print_trace(stall, flush)
 
