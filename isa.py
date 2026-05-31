@@ -39,15 +39,9 @@ class AddressingMode(int, Enum):
 class Instruction:
     opcode: Opcode
     mode: AddressingMode
-    arg: int  # 22-битное расширяемое знаковое число
+    arg: int
 
     def encode(self) -> int:
-        """
-        Превращает инструкцию в 32-битное машинное слово:
-        [31:24] - Opcode (8 бит)
-        [23:22] - Mode (2 бита)
-        [21:0]  - Argument (22 бита, signed)
-        """
         enc_opcode = (self.opcode.value & 0xFF) << 24
         enc_mode = (self.mode.value & 0x3) << 22
         enc_arg = self.arg & 0x3FFFFF
@@ -55,7 +49,6 @@ class Instruction:
 
     @classmethod
     def decode(cls, word: int) -> 'Instruction':
-        """Декодирует 32-битное слово обратно в объект Instruction"""
         opcode_val = (word >> 24) & 0xFF
         mode_val = (word >> 22) & 0x3
         arg = word & 0x3FFFFF

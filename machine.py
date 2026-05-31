@@ -25,95 +25,95 @@ class MicrocodeSignal:
             | ((self.cond & 0xF) << 6)
             | (self.next_micro_addr & 0x3F)
         )
-
 class ControlUnit:
     def __init__(self):
+        self.uaddr_map = {
+            Opcode.HALT: 1,
+            
+            Opcode.LD: 10,
+            Opcode.ST: 12,
+            
+            Opcode.ADD: 20,
+            Opcode.SUB: 21,
+            Opcode.MUL: 22,
+            Opcode.DIV: 23,
+            Opcode.MOD: 24,
+            Opcode.CMP: 25,
+            
+            Opcode.PUSH: 30,
+            Opcode.POP: 32,
+            Opcode.CALL: 34,
+            Opcode.RET: 36,
+            
+            Opcode.IN: 40,
+            Opcode.OUT: 41,
+        }
+        for op in (Opcode.JMP, Opcode.JZ, Opcode.JNZ, Opcode.JLT, Opcode.JGT):
+            self.uaddr_map[op] = 50
+
         self.micro_rom = self._initialize_micro_rom()
-        self.multi_step_ops = {
-            Opcode.PUSH, Opcode.POP, Opcode.CALL, Opcode.RET,
-        }
-        self.mem_ops = {
-            Opcode.LD, Opcode.ST, Opcode.ADD, Opcode.SUB, 
-            Opcode.MUL, Opcode.DIV, Opcode.MOD, Opcode.CMP
-        }
-        self.uaddr_map = {opcode: (opcode.value & 0x3F) for opcode in Opcode}
 
-    def _initialize_micro_rom(self):
-        return {}
-
-    def get_signals(self, opcode: Opcode) -> MicrocodeSignal:
-        return self.micro_rom.get(opcode, MicrocodeSignal())
-
-    def get_micro_steps(self, opcode: Opcode, mode: AddressingMode) -> list[MicrocodeSignal]:
-        stall = 1
-        flush = 2
-        latch_none = 0
+    def _initialize_micro_rom(self) -> dict[int, MicrocodeSignal]:
+        rom = {}
+        stall, flush, latch_none = 1, 2, 0
 
         def step(**kwargs) -> MicrocodeSignal:
             return MicrocodeSignal(**kwargs)
 
-        if opcode == Opcode.HALT:
-            return [step(latch_ctrl=flush, reg_en=0)]
+        # 0: Состояние покоя / FETCH
+        rom[0] = step(next_micro_addr=0)
 
-        if opcode in (Opcode.LD, Opcode.ST) and mode == AddressingMode.INDIRECT:
-            return [
-                step(latch_ctrl=stall, mem_port=1),
-                step(latch_ctrl=latch_none, mem_port=1 if opcode == Opcode.LD else 2, reg_en=1 if opcode == Opcode.LD else 0),
-            ]
+        # 1: HALT
+        rom[1] = step(latch_ctrl=flush, reg_en=0, next_micro_addr=0)
 
-        if opcode == Opcode.PUSH:
-            return [step(latch_ctrl=stall, mem_port=2, reg_en=2), step(latch_ctrl=latch_none)]
+        # 10: LD
+        rom[10] = step(mem_port=1, reg_en=1, next_micro_addr=0)
+        # 12: ST
+        rom[12] = step(mem_port=2, next_micro_addr=0)
 
-        if opcode == Opcode.POP:
-            return [step(latch_ctrl=stall, mem_port=1, reg_en=2), step(latch_ctrl=latch_none, reg_en=1)]
+        # 20-25: АЛУ
+        rom[20] = step(alu_op=1, reg_en=1, next_micro_addr=0) # ADD
+        rom[21] = step(alu_op=2, reg_en=1, next_micro_addr=0) # SUB
+        rom[22] = step(alu_op=3, reg_en=1, next_micro_addr=0) # MUL
+        rom[23] = step(alu_op=4, reg_en=1, next_micro_addr=0) # DIV
+        rom[24] = step(alu_op=5, reg_en=1, next_micro_addr=0) # MOD
+        rom[25] = step(alu_op=6, reg_en=1, next_micro_addr=0) # CMP
 
-        if opcode == Opcode.CALL:
-            return [step(latch_ctrl=stall, mem_port=2, reg_en=2), step(latch_ctrl=flush, reg_en=3)]
+        # 30-31: PUSH (2 такта)
+        rom[30] = step(latch_ctrl=stall, mem_port=2, reg_en=2, next_micro_addr=31)
+        rom[31] = step(latch_ctrl=latch_none, next_micro_addr=0)
 
-        if opcode == Opcode.RET:
-            return [step(latch_ctrl=stall, mem_port=1, reg_en=2), step(latch_ctrl=flush, reg_en=3)]
+        # 32-33: POP (2 такта)
+        rom[32] = step(latch_ctrl=stall, mem_port=1, reg_en=2, next_micro_addr=33)
+        rom[33] = step(latch_ctrl=latch_none, reg_en=1, next_micro_addr=0)
 
-        if opcode == Opcode.IN:
-            return [step(mem_port=3, reg_en=1)]
+        # 34-35: CALL (2 такта)
+        rom[34] = step(latch_ctrl=stall, mem_port=2, reg_en=2, next_micro_addr=35)
+        rom[35] = step(latch_ctrl=flush, reg_en=3, next_micro_addr=0)
 
-        if opcode == Opcode.OUT:
-            return [step(mem_port=4)]
+        # 36-37: RET (2 такта)
+        rom[36] = step(latch_ctrl=stall, mem_port=1, reg_en=2, next_micro_addr=37)
+        rom[37] = step(latch_ctrl=flush, reg_en=3, next_micro_addr=0)
 
-        if opcode in (Opcode.JMP, Opcode.JZ, Opcode.JNZ, Opcode.JLT, Opcode.JGT):
-            cond_map = {
-                Opcode.JMP: 0,
-                Opcode.JZ: 1,
-                Opcode.JNZ: 2,
-                Opcode.JLT: 3,
-                Opcode.JGT: 4,
-            }
-            return [step(latch_ctrl=flush, reg_en=3, cond=cond_map[opcode])]
+        # 40: IN
+        rom[40] = step(mem_port=3, reg_en=1, next_micro_addr=0)
+        # 41: OUT
+        rom[41] = step(mem_port=4, next_micro_addr=0)
 
-        alu_map = {
-            Opcode.ADD: 1, Opcode.SUB: 2, Opcode.MUL: 3,
-            Opcode.DIV: 4, Opcode.MOD: 5, Opcode.CMP: 6,
-        }
-        if opcode in alu_map:
-            return [step(alu_op=alu_map[opcode], reg_en=1)]
+        # 50: Jumps
+        rom[50] = step(latch_ctrl=flush, reg_en=3, next_micro_addr=0)
 
-        if opcode == Opcode.LD:
-            return [step(mem_port=1, reg_en=1)]
+        # Для INDIRECT адресации LD и ST (доп. такты)
+        rom[60] = step(latch_ctrl=stall, mem_port=1, next_micro_addr=61) # Читаем адрес
+        rom[61] = step(latch_ctrl=latch_none, mem_port=1, reg_en=1, next_micro_addr=0) # LD Indirect
+        rom[62] = step(latch_ctrl=latch_none, mem_port=2, next_micro_addr=0)           # ST Indirect
 
-        if opcode == Opcode.ST:
-            return [step(mem_port=2)]
+        return rom
 
-        return [MicrocodeSignal()]
-
-    def get_micro_uaddr(self, opcode: Opcode, step_idx: int) -> int:
-        base = self.uaddr_map.get(opcode, 0)
-        return (base + step_idx) & 0x3F
-
-    def get_step_count(self, opcode: Opcode, mode: AddressingMode) -> int:
-        if opcode in self.multi_step_ops:
-            return 2
-        if opcode in self.mem_ops and mode == AddressingMode.INDIRECT:
-            return 2
-        return 1
+    def get_start_uaddr(self, opcode: Opcode, mode: AddressingMode) -> int:
+        if opcode == Opcode.LD and mode == AddressingMode.INDIRECT: return 60
+        if opcode == Opcode.ST and mode == AddressingMode.INDIRECT: return 60
+        return self.uaddr_map.get(opcode, 0)
 
 @dataclass
 class IF_ID_Latch:
@@ -135,6 +135,7 @@ class Machine:
     def __init__(self, instructions: list[Instruction], data_section: list[int], input_buffer: list[int], trace: bool = False, micro_trace: bool = False):
         self.imem = instructions
         self.dmem = data_section + [0] * (65536 - len(data_section))
+        self.upc = 0
         self.acc = 0
         self.pc = 0
         self.sp = 0xFFFF
@@ -151,7 +152,6 @@ class Machine:
         self.halted = False
         self.cu = ControlUnit()
         self.ex_busy = False
-        self.ex_step = 0
         self.ex_total = 0
         self.ex_op = Opcode.HALT
         self.ex_mode = AddressingMode.IMMEDIATE
@@ -184,20 +184,22 @@ class Machine:
     def ex_stage(self) -> tuple[bool, bool]:
         if not self.ex_busy:
             self.ex_busy = True
-            self.ex_step = 0
             self.ex_op = self.id_ex.opcode
             self.ex_mode = self.id_ex.mode
             self.ex_arg = self.id_ex.arg
             self.ex_pc = self.id_ex.pc
-            self.ex_total = self.cu.get_step_count(self.ex_op, self.ex_mode)
+            
+            self.upc = self.cu.get_start_uaddr(self.ex_op, self.ex_mode)
             self.ex_tmp = 0
 
-        if self.micro_trace:
-            self._print_micro_trace()
+        current_micro_signal = self.cu.micro_rom.get(self.upc, MicrocodeSignal())
 
         op = self.ex_op
         mode = self.ex_mode
         arg = self.ex_arg
+
+        if self.micro_trace:
+            self._print_micro_trace()
 
         if op == Opcode.HALT:
             self.halted = True
@@ -206,9 +208,9 @@ class Machine:
             return False, False
 
         if op in (Opcode.LD, Opcode.ST, Opcode.ADD, Opcode.SUB, Opcode.MUL, Opcode.DIV, Opcode.MOD, Opcode.CMP):
-            if mode == AddressingMode.INDIRECT and self.ex_step == 0:
+            if mode == AddressingMode.INDIRECT and current_micro_signal.next_micro_addr != 0:
                 self.ex_tmp = self._read_mem(arg)
-                self.ex_step += 1
+                self.upc = current_micro_signal.next_micro_addr
                 return True, False
 
             operand = self._load_operand(mode, arg)
@@ -242,9 +244,9 @@ class Machine:
             return False, False
 
         if op == Opcode.PUSH:
-            if self.ex_step == 0:
+            if current_micro_signal.next_micro_addr != 0:
                 self._write_mem(self.sp, self.acc)
-                self.ex_step += 1
+                self.upc = current_micro_signal.next_micro_addr
                 return True, False
             self.sp = (self.sp - 1) & 0xFFFF
             self.ex_busy = False
@@ -252,9 +254,9 @@ class Machine:
             return False, False
 
         if op == Opcode.POP:
-            if self.ex_step == 0:
+            if current_micro_signal.next_micro_addr != 0:
                 self.sp = (self.sp + 1) & 0xFFFF
-                self.ex_step += 1
+                self.upc = current_micro_signal.next_micro_addr
                 return True, False
             self.acc = self._to_signed32(self._read_mem(self.sp))
             self._update_flags(self.acc)
@@ -263,10 +265,10 @@ class Machine:
             return False, False
 
         if op == Opcode.CALL:
-            if self.ex_step == 0:
+            if current_micro_signal.next_micro_addr != 0:
                 ret_addr = (self.ex_pc + 1) & 0xFFFF
                 self._write_mem(self.sp, ret_addr)
-                self.ex_step += 1
+                self.upc = current_micro_signal.next_micro_addr
                 return True, False
             self.sp = (self.sp - 1) & 0xFFFF
             self.pc = arg
@@ -275,15 +277,15 @@ class Machine:
             return False, True
 
         if op == Opcode.RET:
-            if self.ex_step == 0:
+            if current_micro_signal.next_micro_addr != 0:
                 self.sp = (self.sp + 1) & 0xFFFF
-                self.ex_step += 1
+                self.upc = current_micro_signal.next_micro_addr
                 return True, False
             self.pc = self._read_mem(self.sp) & 0xFFFF
             self.ex_busy = False
             self.id_ex.valid = False
             return False, True
-
+        
         if op == Opcode.IN:
             port = arg
             if port != 0:
@@ -305,16 +307,11 @@ class Machine:
 
         if op in (Opcode.JMP, Opcode.JZ, Opcode.JNZ, Opcode.JLT, Opcode.JGT):
             take = False
-            if op == Opcode.JMP:
-                take = True
-            elif op == Opcode.JZ:
-                take = self.flag_z == 1
-            elif op == Opcode.JNZ:
-                take = self.flag_z == 0
-            elif op == Opcode.JLT:
-                take = self.flag_n == 1
-            elif op == Opcode.JGT:
-                take = self.flag_z == 0 and self.flag_n == 0
+            if op == Opcode.JMP: take = True
+            elif op == Opcode.JZ: take = (self.flag_z == 1)
+            elif op == Opcode.JNZ: take = (self.flag_z == 0)
+            elif op == Opcode.JLT: take = (self.flag_n == 1)
+            elif op == Opcode.JGT: take = (self.flag_z == 0 and self.flag_n == 0)
 
             if take:
                 self.pc = arg
@@ -414,7 +411,7 @@ class Machine:
 
         print(
             f"[TICK {self.tick_counter:04}] PC={self.pc:04X} IR={ir_text} "
-            f"EXSTEP={self.ex_step}/{self.ex_total} STALL={int(stall)} FLUSH={int(flush)}"
+            f"uPC={self.upc:02} STALL={int(stall)} FLUSH={int(flush)}"
         )
         print(
             f"ACC={self.acc:11} SP={self.sp:04X} Z={self.flag_z} N={self.flag_n} TMP={self.ex_tmp:04X}"
@@ -422,15 +419,12 @@ class Machine:
         print(f"IF: {if_inst} | ID: {id_inst} | EX: {ex_inst}")
         print("-" * 72)
 
-    def _print_micro_trace(self) -> None:
-        steps = self.cu.get_micro_steps(self.ex_op, self.ex_mode)
-        step_idx = min(self.ex_step, len(steps) - 1)
-        sig = steps[step_idx]
-        uaddr = self.cu.get_micro_uaddr(self.ex_op, step_idx)
+def _print_micro_trace(self) -> None:
+        sig = self.cu.micro_rom.get(self.upc, MicrocodeSignal())
         uword = sig.encode()
         print(
-            f"[uTICK {self.tick_counter:04}] uPC={uaddr:02X} OP={self.ex_op.name} MODE={self.ex_mode.name} "
-            f"UWORD=0x{uword:06X} STEP={step_idx + 1}/{len(steps)}"
+            f"[uTICK {self.tick_counter:04}] uPC={self.upc:02X} OP={self.ex_op.name} MODE={self.ex_mode.name} "
+            f"UWORD=0x{uword:06X}"
         )
         print(
             f"LATCH={sig.latch_ctrl} ALU={sig.alu_op} MUXA={sig.mux_a} MUXB={sig.mux_b} "

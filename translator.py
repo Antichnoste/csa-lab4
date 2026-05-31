@@ -8,7 +8,7 @@ from isa import AddressingMode, Instruction, Opcode, write_binary
 GLOBAL_BASE = 0x1000
 
 def tokenize(code: str) -> list:
-    """Лексический анализ: разбиение исходного кода LISP на токены (скобки, числа, строки, имена)"""
+    """Лексический анализ: разбиение исходного кода LISP на токены"""
     lines = code.splitlines()
     no_comments = [re.sub(r";.*$", "", line) for line in lines]
     code_nc = "\n".join(no_comments)
@@ -137,7 +137,7 @@ def _parse_call(name, args):
     return {"type": "call", "name": name, "args": [ast_to_expr(a) for a in args]}
 
 def parse(tokens: list) -> list:
-    """Синтаксический анализ: преобразование плоского списка токенов в AST (Abstract Syntax Tree)"""
+    """Синтаксический анализ: преобразование плоского списка токенов в AST"""
     parser = LispParser(tokens)
     raw_ast = parser.parse_program()
     return [ast_to_expr(node) for node in raw_ast]
@@ -174,7 +174,7 @@ class CodegenContext:
         self.stack_depth -= 1
 
 def semantic_analysis(ast: list) -> dict:
-    """Семантический анализ: таблицы символов, адреса строк (cstr), вычисление отступов переменных (SP)"""
+    """Семантический анализ: таблицы символов, адреса строк (cstr), вычисление отступов переменных"""
     globals_map: Dict[str, int] = {}
     global_inits: Dict[str, Optional[dict]] = {}
     var_types: Dict[str, str] = {}
