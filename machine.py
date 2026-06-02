@@ -15,11 +15,11 @@ class MicrocodeSignal:
     next_micro_addr: int = 0
 
     def encode(self) -> int:
-        mux_sel = ((self.mux_a & 0x3) << 1) | (self.mux_b & 0x1)
         return (
-            ((self.latch_ctrl & 0x3) << 22)
-            | ((self.alu_op & 0x7) << 19)
-            | ((mux_sel & 0x7) << 16)
+            ((self.latch_ctrl & 0x3) << 23)
+            | ((self.alu_op & 0x7) << 20)
+            | ((self.mux_a & 0x3) << 18)
+            | ((self.mux_b & 0x3) << 16)
             | ((self.mem_port & 0x7) << 13)
             | ((self.reg_en & 0x7) << 10)
             | ((self.cond & 0xF) << 6)
@@ -27,30 +27,6 @@ class MicrocodeSignal:
         )
 class ControlUnit:
     def __init__(self):
-        self.uaddr_map = {
-            Opcode.HALT: 1,
-            
-            Opcode.LD: 10,
-            Opcode.ST: 12,
-            
-            Opcode.ADD: 20,
-            Opcode.SUB: 21,
-            Opcode.MUL: 22,
-            Opcode.DIV: 23,
-            Opcode.MOD: 24,
-            Opcode.CMP: 25,
-            
-            Opcode.PUSH: 30,
-            Opcode.POP: 32,
-            Opcode.CALL: 34,
-            Opcode.RET: 36,
-            
-            Opcode.IN: 40,
-            Opcode.OUT: 41,
-        }
-        for op in (Opcode.JMP, Opcode.JZ, Opcode.JNZ, Opcode.JLT, Opcode.JGT):
-            self.uaddr_map[op] = 50
-
         self.micro_rom = self._initialize_micro_rom()
 
     def _initialize_micro_rom(self) -> dict[int, MicrocodeSignal]:
@@ -60,60 +36,133 @@ class ControlUnit:
         def step(**kwargs) -> MicrocodeSignal:
             return MicrocodeSignal(**kwargs)
 
-        # 0: Состояние покоя / FETCH
         rom[0] = step(next_micro_addr=0)
 
         # 1: HALT
         rom[1] = step(latch_ctrl=flush, reg_en=0, next_micro_addr=0)
 
-        # 10: LD
-        rom[10] = step(mem_port=1, reg_en=1, next_micro_addr=0)
-        # 12: ST
-        rom[12] = step(mem_port=2, next_micro_addr=0)
+        # 10: LD Immediate
+        rom[10] = step(mux_b=0, reg_en=1, next_micro_addr=0)
+        
+        # 11: LD Direct
+        rom[11] = step(mem_port=1, mux_a=0, mux_b=1, reg_en=1, next_micro_addr=0)
+        
+        # 12: LD Relative
+        rom[12] = step(mem_port=1, mux_a=1, mux_b=1, reg_en=1, next_micro_addr=0)
+        
+        # 13-14: LD Indirect (2 такта)
+        rom[13] = step(latch_ctrl=stall, mem_port=1, mux_a=0, next_micro_addr=14) # Такт 1: Чтение адреса в BR
+        rom[14] = step(latch_ctrl=latch_none, mem_port=1, mux_a=2, mux_b=1, reg_en=1, next_micro_addr=0) # Такт 2: Чтение данных по BR
 
-        # 20-25: АЛУ
-        rom[20] = step(alu_op=1, reg_en=1, next_micro_addr=0) # ADD
-        rom[21] = step(alu_op=2, reg_en=1, next_micro_addr=0) # SUB
-        rom[22] = step(alu_op=3, reg_en=1, next_micro_addr=0) # MUL
-        rom[23] = step(alu_op=4, reg_en=1, next_micro_addr=0) # DIV
-        rom[24] = step(alu_op=5, reg_en=1, next_micro_addr=0) # MOD
-        rom[25] = step(alu_op=6, reg_en=1, next_micro_addr=0) # CMP
+        # 15: ST Direct
+        rom[15] = step(mem_port=2, mux_a=0, next_micro_addr=0)
+        
+        # 16: ST Relative
+        rom[16] = step(mem_port=2, mux_a=1, next_micro_addr=0)
+        
+        # 17-18: ST Indirect (2 такта)
+        rom[17] = step(latch_ctrl=stall, mem_port=1, mux_a=0, next_micro_addr=18) # Такт 1: Чтение адреса в BR
+        rom[18] = step(latch_ctrl=latch_none, mem_port=2, mux_a=2, next_micro_addr=0) # Такт 2: Пишем ACC по BR
+        
+        # --- ADD ---
+        rom[20] = step(alu_op=1, mux_b=0, reg_en=1, next_micro_addr=0) # ADD Immediate (MUX B = 0)
+        rom[21] = step(mem_port=1, alu_op=1, mux_a=0, mux_b=1, reg_en=1, next_micro_addr=0) # ADD Direct (MUX B = 1)
+        rom[22] = step(mem_port=1, alu_op=1, mux_a=1, mux_b=1, reg_en=1, next_micro_addr=0) # ADD Relative (MUX B = 1)
 
-        # 30-31: PUSH (2 такта)
-        rom[30] = step(latch_ctrl=stall, mem_port=2, reg_en=2, next_micro_addr=31)
-        rom[31] = step(latch_ctrl=latch_none, next_micro_addr=0)
+        # --- SUB ---
+        rom[23] = step(alu_op=2, mux_b=0, reg_en=1, next_micro_addr=0) # SUB Immediate
+        rom[24] = step(mem_port=1, alu_op=2, mux_a=0, mux_b=1, reg_en=1, next_micro_addr=0) # SUB Direct
+        rom[25] = step(mem_port=1, alu_op=2, mux_a=1, mux_b=1, reg_en=1, next_micro_addr=0) # SUB Relative
 
-        # 32-33: POP (2 такта)
-        rom[32] = step(latch_ctrl=stall, mem_port=1, reg_en=2, next_micro_addr=33)
-        rom[33] = step(latch_ctrl=latch_none, reg_en=1, next_micro_addr=0)
+        # --- MUL ---
+        rom[26] = step(alu_op=3, mux_b=0, reg_en=1, next_micro_addr=0) # MUL Immediate
+        rom[27] = step(mem_port=1, alu_op=3, mux_a=0, mux_b=1, reg_en=1, next_micro_addr=0) # MUL Direct
+        rom[28] = step(mem_port=1, alu_op=3, mux_a=1, mux_b=1, reg_en=1, next_micro_addr=0) # MUL Relative
 
-        # 34-35: CALL (2 такта)
-        rom[34] = step(latch_ctrl=stall, mem_port=2, reg_en=2, next_micro_addr=35)
-        rom[35] = step(latch_ctrl=flush, reg_en=3, next_micro_addr=0)
+        # --- DIV ---
+        rom[29] = step(alu_op=4, mux_b=0, reg_en=1, next_micro_addr=0) # DIV Immediate
+        rom[30] = step(mem_port=1, alu_op=4, mux_a=0, mux_b=1, reg_en=1, next_micro_addr=0) # DIV Direct
+        rom[31] = step(mem_port=1, alu_op=4, mux_a=1, mux_b=1, reg_en=1, next_micro_addr=0) # DIV Relative
 
-        # 36-37: RET (2 такта)
-        rom[36] = step(latch_ctrl=stall, mem_port=1, reg_en=2, next_micro_addr=37)
-        rom[37] = step(latch_ctrl=flush, reg_en=3, next_micro_addr=0)
+        # --- MOD ---
+        rom[32] = step(alu_op=5, mux_b=0, reg_en=1, next_micro_addr=0) # MOD Immediate
+        rom[33] = step(mem_port=1, alu_op=5, mux_a=0, mux_b=1, reg_en=1, next_micro_addr=0) # MOD Direct
+        rom[34] = step(mem_port=1, alu_op=5, mux_a=1, mux_b=1, reg_en=1, next_micro_addr=0) # MOD Relative
 
-        # 40: IN
-        rom[40] = step(mem_port=3, reg_en=1, next_micro_addr=0)
-        # 41: OUT
-        rom[41] = step(mem_port=4, next_micro_addr=0)
+        # --- CMP ---
+        rom[35] = step(alu_op=6, mux_b=0, reg_en=0, next_micro_addr=0) # CMP Immediate
+        rom[36] = step(mem_port=1, alu_op=6, mux_a=0, mux_b=1, reg_en=0, next_micro_addr=0) # CMP Direct
+        rom[37] = step(mem_port=1, alu_op=6, mux_a=1, mux_b=1, reg_en=0, next_micro_addr=0) # CMP Relative
+        
+        # 40-41: PUSH (2 такта)
+        rom[40] = step(latch_ctrl=stall, mem_port=2, mux_a=1, next_micro_addr=41)
+        rom[41] = step(latch_ctrl=latch_none, reg_en=3, next_micro_addr=0) # SP DEC
 
-        # 50: Jumps
-        rom[50] = step(latch_ctrl=flush, reg_en=3, next_micro_addr=0)
+        # 42-43: POP (2 такта)
+        rom[42] = step(latch_ctrl=stall, mem_port=1, reg_en=2, mux_a=1, next_micro_addr=43) # SP INC
+        rom[43] = step(latch_ctrl=latch_none, reg_en=1, mux_b=1, next_micro_addr=0) # Запись в ACC
 
-        # Для INDIRECT адресации LD и ST (доп. такты)
-        rom[60] = step(latch_ctrl=stall, mem_port=1, next_micro_addr=61) # Читаем адрес
-        rom[61] = step(latch_ctrl=latch_none, mem_port=1, reg_en=1, next_micro_addr=0) # LD Indirect
-        rom[62] = step(latch_ctrl=latch_none, mem_port=2, next_micro_addr=0)           # ST Indirect
+        # 44-45: CALL (2 такта)
+        rom[44] = step(latch_ctrl=stall, mem_port=2, mux_a=1, next_micro_addr=45) # Запись PC в стек по SP
+        rom[45] = step(latch_ctrl=flush, reg_en=5, next_micro_addr=0) # PC WE + SP DEC
+
+        # 46-47: RET (2 такта)
+        rom[46] = step(latch_ctrl=stall, mem_port=1, reg_en=2, mux_a=1, next_micro_addr=47) # SP INC, чтение DMEM
+        rom[47] = step(latch_ctrl=flush, reg_en=4, next_micro_addr=0) # PC WE
+
+        # 48: IN
+        rom[48] = step(mem_port=3, reg_en=1, mux_b=2, next_micro_addr=0)
+        
+        # 49: OUT
+        rom[49] = step(mem_port=4, next_micro_addr=0)
+
+        # 50: JUMPS
+        rom[50] = step(latch_ctrl=flush, reg_en=4, next_micro_addr=0)
 
         return rom
 
     def get_start_uaddr(self, opcode: Opcode, mode: AddressingMode) -> int:
-        if opcode == Opcode.LD and mode == AddressingMode.INDIRECT: return 60
-        if opcode == Opcode.ST and mode == AddressingMode.INDIRECT: return 60
-        return self.uaddr_map.get(opcode, 0)
+        """Address Mapper. Преобразует Opcode и Mode макрокоманды в стартовый адрес ПЗУ."""
+        if opcode == Opcode.LD:
+            if mode == AddressingMode.IMMEDIATE: return 10
+            if mode == AddressingMode.DIRECT: return 11
+            if mode == AddressingMode.RELATIVE: return 12
+            if mode == AddressingMode.INDIRECT: return 13
+        if opcode == Opcode.ST:
+            if mode == AddressingMode.DIRECT: return 15
+            if mode == AddressingMode.RELATIVE: return 16
+            if mode == AddressingMode.INDIRECT: return 17
+
+        base_math = {
+            Opcode.ADD: 20, 
+            Opcode.SUB: 23,
+            Opcode.MUL: 26,
+            Opcode.DIV: 29,
+            Opcode.MOD: 32,
+            Opcode.CMP: 35
+        }
+        if opcode in base_math:
+            base = base_math[opcode]
+            if mode == AddressingMode.IMMEDIATE: return base
+            if mode == AddressingMode.DIRECT: return base + 1
+            if mode == AddressingMode.RELATIVE: return base + 2
+
+        fixed_map = {
+            Opcode.HALT: 1,
+            Opcode.PUSH: 40,
+            Opcode.POP: 42,
+            Opcode.CALL: 44,
+            Opcode.RET: 46,
+            Opcode.IN: 48,
+            Opcode.OUT: 49,
+        }
+        if opcode in fixed_map:
+            return fixed_map[opcode]
+
+        if opcode in (Opcode.JMP, Opcode.JZ, Opcode.JNZ, Opcode.JLT, Opcode.JGT):
+            return 50
+
+        return 0
 
 @dataclass
 class IF_ID_Latch:
@@ -152,7 +201,6 @@ class Machine:
         self.halted = False
         self.cu = ControlUnit()
         self.ex_busy = False
-        self.ex_total = 0
         self.ex_op = Opcode.HALT
         self.ex_mode = AddressingMode.IMMEDIATE
         self.ex_arg = 0
@@ -419,7 +467,7 @@ class Machine:
         print(f"IF: {if_inst} | ID: {id_inst} | EX: {ex_inst}")
         print("-" * 72)
 
-def _print_micro_trace(self) -> None:
+    def _print_micro_trace(self) -> None:
         sig = self.cu.micro_rom.get(self.upc, MicrocodeSignal())
         uword = sig.encode()
         print(

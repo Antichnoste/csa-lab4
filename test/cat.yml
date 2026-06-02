@@ -64,27 +64,27 @@ out_log: |
   ACC=          0 SP=FFFF Z=0 N=0 TMP=0000
   IF: HALT IMMEDIATE 0 | ID: CALL DIRECT 1 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0006] PC=001A IR=30400001 uPC=35 STALL=1 FLUSH=0
+  [TICK 0006] PC=001A IR=30400001 uPC=45 STALL=1 FLUSH=0
   ACC=          0 SP=FFFF Z=0 N=0 TMP=0000
   IF: HALT IMMEDIATE 0 | ID: CALL DIRECT 1 | EX: CALL DIRECT 1
   ------------------------------------------------------------------------
-  [TICK 0007] PC=0001 IR=-------- uPC=35 STALL=0 FLUSH=1
+  [TICK 0007] PC=0001 IR=-------- uPC=45 STALL=0 FLUSH=1
   ACC=          0 SP=FFFE Z=0 N=0 TMP=0000
   IF: NOP | ID: NOP | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0008] PC=0002 IR=40000000 uPC=35 STALL=0 FLUSH=0
+  [TICK 0008] PC=0002 IR=40000000 uPC=45 STALL=0 FLUSH=0
   ACC=          0 SP=FFFE Z=0 N=0 TMP=0000
   IF: IN IMMEDIATE 0 | ID: NOP | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0009] PC=0003 IR=40000000 uPC=35 STALL=0 FLUSH=0
+  [TICK 0009] PC=0003 IR=40000000 uPC=45 STALL=0 FLUSH=0
   ACC=          0 SP=FFFE Z=0 N=0 TMP=0000
   IF: ST DIRECT 4096 | ID: IN IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0010] PC=0004 IR=02401000 uPC=40 STALL=0 FLUSH=0
+  [TICK 0010] PC=0004 IR=02401000 uPC=48 STALL=0 FLUSH=0
   ACC=         77 SP=FFFE Z=0 N=0 TMP=0000
   IF: LD IMMEDIATE 0 | ID: ST DIRECT 4096 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0011] PC=0005 IR=01000000 uPC=12 STALL=0 FLUSH=0
+  [TICK 0011] PC=0005 IR=01000000 uPC=15 STALL=0 FLUSH=0
   ACC=         77 SP=FFFE Z=0 N=0 TMP=0000
   IF: PUSH IMMEDIATE 0 | ID: LD IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
@@ -92,19 +92,19 @@ out_log: |
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: LD DIRECT 4096 | ID: PUSH IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0013] PC=0006 IR=32000000 uPC=31 STALL=1 FLUSH=0
+  [TICK 0013] PC=0006 IR=32000000 uPC=41 STALL=1 FLUSH=0
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: LD DIRECT 4096 | ID: PUSH IMMEDIATE 0 | EX: PUSH IMMEDIATE 0
   ------------------------------------------------------------------------
-  [TICK 0014] PC=0007 IR=01401000 uPC=31 STALL=0 FLUSH=0
+  [TICK 0014] PC=0007 IR=01401000 uPC=41 STALL=0 FLUSH=0
   ACC=          0 SP=FFFD Z=1 N=0 TMP=0000
   IF: CMP RELATIVE 1 | ID: LD DIRECT 4096 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0015] PC=0008 IR=15C00001 uPC=10 STALL=0 FLUSH=0
+  [TICK 0015] PC=0008 IR=15C00001 uPC=11 STALL=0 FLUSH=0
   ACC=         77 SP=FFFD Z=0 N=0 TMP=0000
   IF: JZ DIRECT 10 | ID: CMP RELATIVE 1 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0016] PC=0009 IR=2140000A uPC=25 STALL=0 FLUSH=0
+  [TICK 0016] PC=0009 IR=2140000A uPC=37 STALL=0 FLUSH=0
   ACC=         77 SP=FFFD Z=0 N=0 TMP=0000
   IF: LD IMMEDIATE 0 | ID: JZ DIRECT 10 | EX: NOP
   ------------------------------------------------------------------------
@@ -128,19 +128,19 @@ out_log: |
   ACC=          0 SP=FFFD Z=1 N=0 TMP=0000
   IF: POP IMMEDIATE 0 | ID: ST DIRECT 4097 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0022] PC=000E IR=33000000 uPC=12 STALL=0 FLUSH=0
+  [TICK 0022] PC=000E IR=33000000 uPC=15 STALL=0 FLUSH=0
   ACC=          0 SP=FFFD Z=1 N=0 TMP=0000
   IF: LD DIRECT 4097 | ID: POP IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0023] PC=000E IR=33000000 uPC=33 STALL=1 FLUSH=0
+  [TICK 0023] PC=000E IR=33000000 uPC=43 STALL=1 FLUSH=0
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: LD DIRECT 4097 | ID: POP IMMEDIATE 0 | EX: POP IMMEDIATE 0
   ------------------------------------------------------------------------
-  [TICK 0024] PC=000F IR=01401001 uPC=33 STALL=0 FLUSH=0
+  [TICK 0024] PC=000F IR=01401001 uPC=43 STALL=0 FLUSH=0
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: CMP IMMEDIATE 0 | ID: LD DIRECT 4097 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0025] PC=0010 IR=15000000 uPC=10 STALL=0 FLUSH=0
+  [TICK 0025] PC=0010 IR=15000000 uPC=11 STALL=0 FLUSH=0
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: JZ DIRECT 19 | ID: CMP IMMEDIATE 0 | EX: NOP
 
@@ -152,11 +152,11 @@ out_log: |
   ACC=         33 SP=FFFE Z=0 N=0 TMP=0000
   IF: ST DIRECT 4096 | ID: IN IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0322] PC=0004 IR=02401000 uPC=40 STALL=0 FLUSH=0
+  [TICK 0322] PC=0004 IR=02401000 uPC=48 STALL=0 FLUSH=0
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: LD IMMEDIATE 0 | ID: ST DIRECT 4096 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0323] PC=0005 IR=01000000 uPC=12 STALL=0 FLUSH=0
+  [TICK 0323] PC=0005 IR=01000000 uPC=15 STALL=0 FLUSH=0
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: PUSH IMMEDIATE 0 | ID: LD IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
@@ -164,19 +164,19 @@ out_log: |
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: LD DIRECT 4096 | ID: PUSH IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0325] PC=0006 IR=32000000 uPC=31 STALL=1 FLUSH=0
+  [TICK 0325] PC=0006 IR=32000000 uPC=41 STALL=1 FLUSH=0
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: LD DIRECT 4096 | ID: PUSH IMMEDIATE 0 | EX: PUSH IMMEDIATE 0
   ------------------------------------------------------------------------
-  [TICK 0326] PC=0007 IR=01401000 uPC=31 STALL=0 FLUSH=0
+  [TICK 0326] PC=0007 IR=01401000 uPC=41 STALL=0 FLUSH=0
   ACC=          0 SP=FFFD Z=1 N=0 TMP=0000
   IF: CMP RELATIVE 1 | ID: LD DIRECT 4096 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0327] PC=0008 IR=15C00001 uPC=10 STALL=0 FLUSH=0
+  [TICK 0327] PC=0008 IR=15C00001 uPC=11 STALL=0 FLUSH=0
   ACC=          0 SP=FFFD Z=1 N=0 TMP=0000
   IF: JZ DIRECT 10 | ID: CMP RELATIVE 1 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0328] PC=0009 IR=2140000A uPC=25 STALL=0 FLUSH=0
+  [TICK 0328] PC=0009 IR=2140000A uPC=37 STALL=0 FLUSH=0
   ACC=          0 SP=FFFD Z=1 N=0 TMP=0000
   IF: LD IMMEDIATE 0 | ID: JZ DIRECT 10 | EX: NOP
   ------------------------------------------------------------------------
@@ -196,23 +196,23 @@ out_log: |
   ACC=          1 SP=FFFD Z=0 N=0 TMP=0000
   IF: POP IMMEDIATE 0 | ID: ST DIRECT 4097 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0333] PC=000E IR=33000000 uPC=12 STALL=0 FLUSH=0
+  [TICK 0333] PC=000E IR=33000000 uPC=15 STALL=0 FLUSH=0
   ACC=          1 SP=FFFD Z=0 N=0 TMP=0000
   IF: LD DIRECT 4097 | ID: POP IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0334] PC=000E IR=33000000 uPC=33 STALL=1 FLUSH=0
+  [TICK 0334] PC=000E IR=33000000 uPC=43 STALL=1 FLUSH=0
   ACC=          1 SP=FFFE Z=0 N=0 TMP=0000
   IF: LD DIRECT 4097 | ID: POP IMMEDIATE 0 | EX: POP IMMEDIATE 0
   ------------------------------------------------------------------------
-  [TICK 0335] PC=000F IR=01401001 uPC=33 STALL=0 FLUSH=0
+  [TICK 0335] PC=000F IR=01401001 uPC=43 STALL=0 FLUSH=0
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: CMP IMMEDIATE 0 | ID: LD DIRECT 4097 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0336] PC=0010 IR=15000000 uPC=10 STALL=0 FLUSH=0
+  [TICK 0336] PC=0010 IR=15000000 uPC=11 STALL=0 FLUSH=0
   ACC=          1 SP=FFFE Z=0 N=0 TMP=0000
   IF: JZ DIRECT 19 | ID: CMP IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0337] PC=0011 IR=21400013 uPC=25 STALL=0 FLUSH=0
+  [TICK 0337] PC=0011 IR=21400013 uPC=35 STALL=0 FLUSH=0
   ACC=          1 SP=FFFE Z=0 N=0 TMP=0000
   IF: LD IMMEDIATE 0 | ID: JZ DIRECT 19 | EX: NOP
   ------------------------------------------------------------------------
@@ -224,19 +224,19 @@ out_log: |
   ACC=          0 SP=FFFE Z=1 N=0 TMP=0000
   IF: JMP DIRECT 20 | ID: RET IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0340] PC=0013 IR=31000000 uPC=37 STALL=1 FLUSH=0
+  [TICK 0340] PC=0013 IR=31000000 uPC=47 STALL=1 FLUSH=0
   ACC=          0 SP=FFFF Z=1 N=0 TMP=0000
   IF: JMP DIRECT 20 | ID: RET IMMEDIATE 0 | EX: RET IMMEDIATE 0
   ------------------------------------------------------------------------
-  [TICK 0341] PC=0019 IR=-------- uPC=37 STALL=0 FLUSH=1
+  [TICK 0341] PC=0019 IR=-------- uPC=47 STALL=0 FLUSH=1
   ACC=          0 SP=FFFF Z=1 N=0 TMP=0000
   IF: NOP | ID: NOP | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0342] PC=001A IR=00000000 uPC=37 STALL=0 FLUSH=0
+  [TICK 0342] PC=001A IR=00000000 uPC=47 STALL=0 FLUSH=0
   ACC=          0 SP=FFFF Z=1 N=0 TMP=0000
   IF: HALT IMMEDIATE 0 | ID: NOP | EX: NOP
   ------------------------------------------------------------------------
-  [TICK 0343] PC=001A IR=00000000 uPC=37 STALL=0 FLUSH=0
+  [TICK 0343] PC=001A IR=00000000 uPC=47 STALL=0 FLUSH=0
   ACC=          0 SP=FFFF Z=1 N=0 TMP=0000
   IF: NOP | ID: HALT IMMEDIATE 0 | EX: NOP
   ------------------------------------------------------------------------
