@@ -36,6 +36,8 @@ Thumbs.db
 *.swo
 
 COMMANDS.md
+instructions_and_addresing.md
+micro_instraction.md
 
 CU.xml
 DataPath.xml
@@ -44,4 +46,3 @@ DataPath_changed.xml
 *.txt
 *.bin
 *.asm
-micro_instraction.md

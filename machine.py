@@ -188,8 +188,6 @@ class ID_EX_Latch:
     opcode: Opcode = Opcode.HALT
     mode: AddressingMode = AddressingMode.IMMEDIATE
     arg: int = 0
-    sp: int = 0
-    acc: int = 0
     pc: int = 0
     valid: bool = False
 
@@ -259,13 +257,20 @@ class Machine:
 
         # 1. MUX Addr
         mem_addr = 0
-        if sig.mux_a == 0: mem_addr = self.ex_arg
-        elif sig.mux_a == 1: mem_addr = (self.sp + self.ex_arg) & 0xFFFF
-        elif sig.mux_a == 2: mem_addr = self.ex_tmp
-        elif sig.mux_a == 3: mem_addr = self.sp
+        if sig.mux_a == 0: 
+            mem_addr = self.ex_arg
+        elif sig.mux_a == 1: 
+            mem_addr = (self.sp + self.ex_arg) & 0xFFFF
+        elif sig.mux_a == 2: 
+            mem_addr = self.ex_tmp
+        elif sig.mux_a == 3: 
+            mem_addr = self.sp
 
         # 2. Memory Read
-        mem_data = self._read_mem(mem_addr) if sig.mem_port == 1 else 0
+        if sig.mem_port == 1:
+            mem_data = self._read_mem(mem_addr)
+        else:
+            mem_data = 0
 
         # BR
         if sig.mem_port == 1 and sig.reg_en == 0:
@@ -273,45 +278,69 @@ class Machine:
 
         # 3. MUX Src B
         alu_b = 0
-        if sig.mux_b == 0: alu_b = self.ex_arg
-        elif sig.mux_b == 1: alu_b = mem_data
-        elif sig.mux_b == 2: alu_b = self.input_buffer.pop(0) if self.input_buffer else 0
+        if sig.mux_b == 0: 
+            alu_b = self.ex_arg
+        elif sig.mux_b == 1: 
+            alu_b = mem_data
+        elif sig.mux_b == 2: 
+            alu_b = self.input_buffer.pop(0) if self.input_buffer else 0
 
         # 4. ALU
         alu_out = 0
-        if sig.alu_op == 0: alu_out = alu_b # PASS B
-        elif sig.alu_op == 1: alu_out = self.acc + alu_b
-        elif sig.alu_op == 2: alu_out = self.acc - alu_b
-        elif sig.alu_op == 3: alu_out = self.acc * alu_b
-        elif sig.alu_op == 4: alu_out = self.acc // alu_b if alu_b != 0 else 0
-        elif sig.alu_op == 5: alu_out = self.acc % alu_b if alu_b != 0 else 0
-        elif sig.alu_op == 6: alu_out = self.acc - alu_b # CMP
-        elif sig.alu_op == 7: alu_out = self.acc # <--- НОВОЕ: PASS A (Пропустить ACC)
+        if sig.alu_op == 0: 
+            alu_out = alu_b
+        elif sig.alu_op == 1: 
+            alu_out = self.acc + alu_b
+        elif sig.alu_op == 2: 
+            alu_out = self.acc - alu_b
+        elif sig.alu_op == 3: 
+            alu_out = self.acc * alu_b
+        elif sig.alu_op == 4: 
+            alu_out = self.acc // alu_b if alu_b != 0 else 0
+        elif sig.alu_op == 5: 
+            alu_out = self.acc % alu_b if alu_b != 0 else 0
+        elif sig.alu_op == 6: 
+            alu_out = self.acc - alu_b
+        elif sig.alu_op == 7: 
+            alu_out = self.acc
         
         alu_out = self._to_signed32(alu_out)
 
         # 5. MUX Data
-        data_in = ((self.ex_pc + 1) & 0xFFFF) if sig.mux_data == 1 else self.acc
+        if sig.mux_data == 1:
+            data_in = ((self.ex_pc + 1) & 0xFFFF)
+        else:
+            data_in = self.acc
 
         # 6. Memory Write & OUT Port
-        if sig.mem_port == 2: self._write_mem(mem_addr, data_in)
-        if sig.mem_port == 4: self.output_buffer.append(alu_out)
+        if sig.mem_port == 2: 
+            self._write_mem(mem_addr, data_in)
+        if sig.mem_port == 4: 
+            self.output_buffer.append(alu_out)
 
         # 7. Condition Module
         take = False
-        if sig.cond == 0: take = True
-        elif sig.cond == 1: take = (self.flag_z == 1)
-        elif sig.cond == 2: take = (self.flag_z == 0)
-        elif sig.cond == 3: take = (self.flag_n == 1)
-        elif sig.cond == 4: take = (self.flag_z == 0 and self.flag_n == 0)
+        if sig.cond == 0: 
+            take = True
+        elif sig.cond == 1: 
+            take = (self.flag_z == 1)
+        elif sig.cond == 2: 
+            take = (self.flag_z == 0)
+        elif sig.cond == 3: 
+            take = (self.flag_n == 1)
+        elif sig.cond == 4: 
+            take = (self.flag_z == 0 and self.flag_n == 0)
 
         # 8. Reg En
         if sig.reg_en == 1: 
             self.acc = alu_out
-            self._update_flags(alu_out) # Обновляем флаги при изменении ACC
-        elif sig.reg_en == 2: self.sp = (self.sp + 1) & 0xFFFF
-        elif sig.reg_en == 3: self.sp = (self.sp - 1) & 0xFFFF
-        elif sig.reg_en == 4 and take: self.pc = alu_out
+            self._update_flags(alu_out)
+        elif sig.reg_en == 2: 
+            self.sp = (self.sp + 1) & 0xFFFF
+        elif sig.reg_en == 3: 
+            self.sp = (self.sp - 1) & 0xFFFF
+        elif sig.reg_en == 4 and take: 
+            self.pc = alu_out
         elif sig.reg_en == 5 and take: 
             self.pc = alu_out
             self.sp = (self.sp - 1) & 0xFFFF
@@ -324,7 +353,8 @@ class Machine:
         if sig.next_micro_addr == 0:
             self.upc = 0
             self.ex_busy, self.id_ex.valid = False, False
-            if sig.reg_en in (4, 5) and take: flush = True
+            if sig.reg_en in (4, 5) and take: 
+                flush = True
             return False, flush
         else:
             self.upc = sig.next_micro_addr
@@ -361,23 +391,6 @@ class Machine:
     def _write_mem(self, addr: int, value: int) -> None:
         addr &= 0xFFFF
         self.dmem[addr] = self._to_signed32(value)
-
-    def _load_operand(self, mode: AddressingMode, arg: int) -> int:
-        if mode == AddressingMode.IMMEDIATE:
-            return arg
-        if mode == AddressingMode.DIRECT:
-            return self._read_mem(arg)
-        if mode == AddressingMode.INDIRECT:
-            return self._read_mem(self.ex_tmp)
-        addr = (self.sp + arg) & 0xFFFF
-        return self._read_mem(addr)
-
-    def _store_address(self, mode: AddressingMode, arg: int) -> int:
-        if mode == AddressingMode.DIRECT:
-            return arg
-        if mode == AddressingMode.INDIRECT:
-            return self.ex_tmp
-        return (self.sp + arg) & 0xFFFF
 
     def _format_inst(self, opcode: Opcode, mode: AddressingMode, arg: int) -> str:
         return f"{opcode.name} {mode.name} {arg}"
