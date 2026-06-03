@@ -39,6 +39,7 @@ COMMANDS.md
 
 CU.xml
 DataPath.xml
+DataPath_changed.xml
 
 *.txt
 *.bin

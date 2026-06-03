@@ -9,6 +9,7 @@ class MicrocodeSignal:
     alu_op: int = 0
     mux_a: int = 0
     mux_b: int = 0
+    mux_data: int = 0
     mem_port: int = 0
     reg_en: int = 0
     cond: int = 0
@@ -16,10 +17,11 @@ class MicrocodeSignal:
 
     def encode(self) -> int:
         return (
-            ((self.latch_ctrl & 0x3) << 23)
-            | ((self.alu_op & 0x7) << 20)
-            | ((self.mux_a & 0x3) << 18)
-            | ((self.mux_b & 0x3) << 16)
+            ((self.latch_ctrl & 0x3) << 24)
+            | ((self.alu_op & 0x7) << 21)
+            | ((self.mux_a & 0x3) << 19)
+            | ((self.mux_b & 0x3) << 17)
+            | ((self.mux_data & 0x1) << 16)
             | ((self.mem_port & 0x7) << 13)
             | ((self.reg_en & 0x7) << 10)
             | ((self.cond & 0xF) << 6)
@@ -95,29 +97,33 @@ class ControlUnit:
         rom[37] = step(mem_port=1, alu_op=6, mux_a=1, mux_b=1, reg_en=0, next_micro_addr=0) # CMP Relative
         
         # 40-41: PUSH (2 такта)
-        rom[40] = step(latch_ctrl=stall, mem_port=2, mux_a=1, next_micro_addr=41)
+        rom[40] = step(latch_ctrl=stall, mem_port=2, mux_a=3, mux_data=0, next_micro_addr=41)
         rom[41] = step(latch_ctrl=latch_none, reg_en=3, next_micro_addr=0) # SP DEC
 
         # 42-43: POP (2 такта)
-        rom[42] = step(latch_ctrl=stall, mem_port=1, reg_en=2, mux_a=1, next_micro_addr=43) # SP INC
-        rom[43] = step(latch_ctrl=latch_none, reg_en=1, mux_b=1, next_micro_addr=0) # Запись в ACC
+        rom[42] = step(latch_ctrl=stall, reg_en=2, next_micro_addr=43) # SP INC
+        rom[43] = step(latch_ctrl=latch_none, mem_port=1, mux_a=3, mux_b=1, reg_en=1, next_micro_addr=0) # Запись в ACC
 
         # 44-45: CALL (2 такта)
-        rom[44] = step(latch_ctrl=stall, mem_port=2, mux_a=1, next_micro_addr=45) # Запись PC в стек по SP
+        rom[44] = step(latch_ctrl=stall, mem_port=2, mux_a=3, mux_data=1, next_micro_addr=45) # Запись PC в стек по SP
         rom[45] = step(latch_ctrl=flush, reg_en=5, next_micro_addr=0) # PC WE + SP DEC
 
         # 46-47: RET (2 такта)
-        rom[46] = step(latch_ctrl=stall, mem_port=1, reg_en=2, mux_a=1, next_micro_addr=47) # SP INC, чтение DMEM
-        rom[47] = step(latch_ctrl=flush, reg_en=4, next_micro_addr=0) # PC WE
+        rom[46] = step(latch_ctrl=stall, reg_en=2, next_micro_addr=47) # SP INC, чтение DMEM
+        rom[47] = step(latch_ctrl=flush, mem_port=1, mux_a=3, mux_b=1, reg_en=4, next_micro_addr=0) # PC WE
 
         # 48: IN
         rom[48] = step(mem_port=3, reg_en=1, mux_b=2, next_micro_addr=0)
         
         # 49: OUT
-        rom[49] = step(mem_port=4, next_micro_addr=0)
+        rom[49] = step(mem_port=4, alu_op=7, next_micro_addr=0)
 
-        # 50: JUMPS
-        rom[50] = step(latch_ctrl=flush, reg_en=4, next_micro_addr=0)
+        # 50-54: JUMPS
+        rom[50] = step(latch_ctrl=flush, mux_b=0, alu_op=0, cond=0, reg_en=4, next_micro_addr=0) # JMP
+        rom[51] = step(latch_ctrl=flush, mux_b=0, alu_op=0, cond=1, reg_en=4, next_micro_addr=0) # JZ
+        rom[52] = step(latch_ctrl=flush, mux_b=0, alu_op=0, cond=2, reg_en=4, next_micro_addr=0) # JNZ
+        rom[53] = step(latch_ctrl=flush, mux_b=0, alu_op=0, cond=3, reg_en=4, next_micro_addr=0) # JLT
+        rom[54] = step(latch_ctrl=flush, mux_b=0, alu_op=0, cond=4, reg_en=4, next_micro_addr=0) # JGT
 
         return rom
 
@@ -159,8 +165,15 @@ class ControlUnit:
         if opcode in fixed_map:
             return fixed_map[opcode]
 
-        if opcode in (Opcode.JMP, Opcode.JZ, Opcode.JNZ, Opcode.JLT, Opcode.JGT):
-            return 50
+        jump_map = {
+            Opcode.JMP: 50,
+            Opcode.JZ: 51,
+            Opcode.JNZ: 52,
+            Opcode.JLT: 53,
+            Opcode.JGT: 54
+        }
+        if opcode in jump_map:
+            return jump_map[opcode]
 
         return 0
 
@@ -232,144 +245,90 @@ class Machine:
     def ex_stage(self) -> tuple[bool, bool]:
         if not self.ex_busy:
             self.ex_busy = True
-            self.ex_op = self.id_ex.opcode
-            self.ex_mode = self.id_ex.mode
-            self.ex_arg = self.id_ex.arg
-            self.ex_pc = self.id_ex.pc
-            
+            self.ex_op, self.ex_mode = self.id_ex.opcode, self.id_ex.mode
+            self.ex_arg, self.ex_pc = self.id_ex.arg, self.id_ex.pc
             self.upc = self.cu.get_start_uaddr(self.ex_op, self.ex_mode)
             self.ex_tmp = 0
 
-        current_micro_signal = self.cu.micro_rom.get(self.upc, MicrocodeSignal())
-
-        op = self.ex_op
-        mode = self.ex_mode
-        arg = self.ex_arg
-
-        if self.micro_trace:
-            self._print_micro_trace()
-
-        if op == Opcode.HALT:
-            self.halted = True
-            self.ex_busy = False
-            self.id_ex.valid = False
+        if self.ex_op == Opcode.HALT:
+            self.halted, self.ex_busy, self.id_ex.valid = True, False, False
             return False, False
 
-        if op in (Opcode.LD, Opcode.ST, Opcode.ADD, Opcode.SUB, Opcode.MUL, Opcode.DIV, Opcode.MOD, Opcode.CMP):
-            if mode == AddressingMode.INDIRECT and current_micro_signal.next_micro_addr != 0:
-                self.ex_tmp = self._read_mem(arg)
-                self.upc = current_micro_signal.next_micro_addr
-                return True, False
+        sig = self.cu.micro_rom.get(self.upc, MicrocodeSignal())
+        if self.micro_trace: self._print_micro_trace()
 
-            operand = self._load_operand(mode, arg)
-            if op == Opcode.LD:
-                self.acc = self._to_signed32(operand)
-                self._update_flags(self.acc)
-            elif op == Opcode.ST:
-                addr = self._store_address(mode, arg)
-                self._write_mem(addr, self.acc)
-            elif op == Opcode.ADD:
-                self.acc = self._to_signed32(self.acc + operand)
-                self._update_flags(self.acc)
-            elif op == Opcode.SUB:
-                self.acc = self._to_signed32(self.acc - operand)
-                self._update_flags(self.acc)
-            elif op == Opcode.MUL:
-                self.acc = self._to_signed32(self.acc * operand)
-                self._update_flags(self.acc)
-            elif op == Opcode.DIV:
-                self.acc = self._to_signed32(self.acc // operand if operand != 0 else 0)
-                self._update_flags(self.acc)
-            elif op == Opcode.MOD:
-                self.acc = self._to_signed32(self.acc % operand if operand != 0 else 0)
-                self._update_flags(self.acc)
-            elif op == Opcode.CMP:
-                diff = self._to_signed32(self.acc - operand)
-                self._update_flags(diff)
+        # 1. MUX Addr
+        mem_addr = 0
+        if sig.mux_a == 0: mem_addr = self.ex_arg
+        elif sig.mux_a == 1: mem_addr = (self.sp + self.ex_arg) & 0xFFFF
+        elif sig.mux_a == 2: mem_addr = self.ex_tmp
+        elif sig.mux_a == 3: mem_addr = self.sp
 
-            self.ex_busy = False
-            self.id_ex.valid = False
-            return False, False
+        # 2. Memory Read
+        mem_data = self._read_mem(mem_addr) if sig.mem_port == 1 else 0
 
-        if op == Opcode.PUSH:
-            if current_micro_signal.next_micro_addr != 0:
-                self._write_mem(self.sp, self.acc)
-                self.upc = current_micro_signal.next_micro_addr
-                return True, False
-            self.sp = (self.sp - 1) & 0xFFFF
-            self.ex_busy = False
-            self.id_ex.valid = False
-            return False, False
+        # BR
+        if sig.mem_port == 1 and sig.reg_en == 0:
+            self.ex_tmp = mem_data
 
-        if op == Opcode.POP:
-            if current_micro_signal.next_micro_addr != 0:
-                self.sp = (self.sp + 1) & 0xFFFF
-                self.upc = current_micro_signal.next_micro_addr
-                return True, False
-            self.acc = self._to_signed32(self._read_mem(self.sp))
-            self._update_flags(self.acc)
-            self.ex_busy = False
-            self.id_ex.valid = False
-            return False, False
+        # 3. MUX Src B
+        alu_b = 0
+        if sig.mux_b == 0: alu_b = self.ex_arg
+        elif sig.mux_b == 1: alu_b = mem_data
+        elif sig.mux_b == 2: alu_b = self.input_buffer.pop(0) if self.input_buffer else 0
 
-        if op == Opcode.CALL:
-            if current_micro_signal.next_micro_addr != 0:
-                ret_addr = (self.ex_pc + 1) & 0xFFFF
-                self._write_mem(self.sp, ret_addr)
-                self.upc = current_micro_signal.next_micro_addr
-                return True, False
-            self.sp = (self.sp - 1) & 0xFFFF
-            self.pc = arg
-            self.ex_busy = False
-            self.id_ex.valid = False
-            return False, True
-
-        if op == Opcode.RET:
-            if current_micro_signal.next_micro_addr != 0:
-                self.sp = (self.sp + 1) & 0xFFFF
-                self.upc = current_micro_signal.next_micro_addr
-                return True, False
-            self.pc = self._read_mem(self.sp) & 0xFFFF
-            self.ex_busy = False
-            self.id_ex.valid = False
-            return False, True
+        # 4. ALU
+        alu_out = 0
+        if sig.alu_op == 0: alu_out = alu_b # PASS B
+        elif sig.alu_op == 1: alu_out = self.acc + alu_b
+        elif sig.alu_op == 2: alu_out = self.acc - alu_b
+        elif sig.alu_op == 3: alu_out = self.acc * alu_b
+        elif sig.alu_op == 4: alu_out = self.acc // alu_b if alu_b != 0 else 0
+        elif sig.alu_op == 5: alu_out = self.acc % alu_b if alu_b != 0 else 0
+        elif sig.alu_op == 6: alu_out = self.acc - alu_b # CMP
+        elif sig.alu_op == 7: alu_out = self.acc # <--- НОВОЕ: PASS A (Пропустить ACC)
         
-        if op == Opcode.IN:
-            port = arg
-            if port != 0:
-                self.acc = 0
-            if self.input_buffer:
-                self.acc = self._to_signed32(self.input_buffer.pop(0))
-            else:
-                self.acc = 0
-            self._update_flags(self.acc)
-            self.ex_busy = False
-            self.id_ex.valid = False
-            return False, False
+        alu_out = self._to_signed32(alu_out)
 
-        if op == Opcode.OUT:
-            self.output_buffer.append(self.acc)
-            self.ex_busy = False
-            self.id_ex.valid = False
-            return False, False
+        # 5. MUX Data
+        data_in = ((self.ex_pc + 1) & 0xFFFF) if sig.mux_data == 1 else self.acc
 
-        if op in (Opcode.JMP, Opcode.JZ, Opcode.JNZ, Opcode.JLT, Opcode.JGT):
-            take = False
-            if op == Opcode.JMP: take = True
-            elif op == Opcode.JZ: take = (self.flag_z == 1)
-            elif op == Opcode.JNZ: take = (self.flag_z == 0)
-            elif op == Opcode.JLT: take = (self.flag_n == 1)
-            elif op == Opcode.JGT: take = (self.flag_z == 0 and self.flag_n == 0)
+        # 6. Memory Write & OUT Port
+        if sig.mem_port == 2: self._write_mem(mem_addr, data_in)
+        if sig.mem_port == 4: self.output_buffer.append(alu_out)
 
-            if take:
-                self.pc = arg
-            self.ex_busy = False
-            self.id_ex.valid = False
-            return False, take
+        # 7. Condition Module
+        take = False
+        if sig.cond == 0: take = True
+        elif sig.cond == 1: take = (self.flag_z == 1)
+        elif sig.cond == 2: take = (self.flag_z == 0)
+        elif sig.cond == 3: take = (self.flag_n == 1)
+        elif sig.cond == 4: take = (self.flag_z == 0 and self.flag_n == 0)
 
-        self.ex_busy = False
-        self.id_ex.valid = False
-        return False, False
+        # 8. Reg En
+        if sig.reg_en == 1: 
+            self.acc = alu_out
+            self._update_flags(alu_out) # Обновляем флаги при изменении ACC
+        elif sig.reg_en == 2: self.sp = (self.sp + 1) & 0xFFFF
+        elif sig.reg_en == 3: self.sp = (self.sp - 1) & 0xFFFF
+        elif sig.reg_en == 4 and take: self.pc = alu_out
+        elif sig.reg_en == 5 and take: 
+            self.pc = alu_out
+            self.sp = (self.sp - 1) & 0xFFFF
+            
+        if sig.alu_op == 6:
+            self._update_flags(alu_out)
+
+        # 9. Next Addr
+        flush = False
+        if sig.next_micro_addr == 0:
+            self.upc = 0
+            self.ex_busy, self.id_ex.valid = False, False
+            if sig.reg_en in (4, 5) and take: flush = True
+            return False, flush
+        else:
+            self.upc = sig.next_micro_addr
+            return True, False
 
     def id_stage(self) -> bool:
         inst = self.if_id.instruction
@@ -475,7 +434,7 @@ class Machine:
             f"UWORD=0x{uword:06X}"
         )
         print(
-            f"LATCH={sig.latch_ctrl} ALU={sig.alu_op} MUXA={sig.mux_a} MUXB={sig.mux_b} "
+            f"LATCH={sig.latch_ctrl} ALU={sig.alu_op} MUX_A={sig.mux_a} MUX_B={sig.mux_b} MUX_DATA={sig.mux_data} "
             f"MEM={sig.mem_port} REG={sig.reg_en} COND={sig.cond} NEXT={sig.next_micro_addr}"
         )
 
