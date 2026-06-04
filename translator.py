@@ -72,8 +72,8 @@ def ast_to_expr(ast):
         "print": _parse_print,
         "in": _parse_in,
         "out": _parse_out,
-        "read-mem": lambda args: {"type": "read-mem", "addr": ast_to_expr(args[0])},
-        "write-mem": lambda args: {"type": "write-mem", "addr": ast_to_expr(args[0]), "val": ast_to_expr(args[1])}
+        "read-mem": _parse_read_mem,
+        "write-mem": _parse_write_mem
     }
 
     if head in ("+", "-", "*", "/", "mod", "=", "!=", "<", ">"):
@@ -136,6 +136,12 @@ def _parse_out(args):
 def _parse_call(name, args):
     return {"type": "call", "name": name, "args": [ast_to_expr(a) for a in args]}
 
+def _parse_read_mem(args):
+    return {"type": "read-mem", "addr": ast_to_expr(args[0])}
+
+def _parse_write_mem(args):
+    return {"type": "write-mem", "addr": ast_to_expr(args[0]), "val": ast_to_expr(args[1])}
+
 def parse(tokens: list) -> list:
     """Синтаксический анализ: преобразование плоского списка токенов в AST"""
     parser = LispParser(tokens)
@@ -182,6 +188,11 @@ def semantic_analysis(ast: list) -> dict:
     strings: Dict[str, int] = {}
     data_section: List[int] = []
 
+    scratch_ret = GLOBAL_BASE
+    scratch_ptr = GLOBAL_BASE + 1
+    
+    current_global_offset = GLOBAL_BASE + 2 
+
     def alloc_string(value: str) -> int:
         if value in strings:
             return strings[value]
@@ -214,7 +225,9 @@ def semantic_analysis(ast: list) -> dict:
             name = node["name"]
             if name in globals_map:
                 raise ValueError(f"Duplicate global variable: {name}")
-            globals_map[name] = GLOBAL_BASE + len(globals_map)
+            globals_map[name] = current_global_offset
+            current_global_offset += 1
+
             global_inits[name] = node.get("expr")
             if isinstance(node.get("expr"), dict) and node["expr"].get("type") == "string":
                 var_types[name] = "string"
@@ -246,9 +259,7 @@ def semantic_analysis(ast: list) -> dict:
         else:
             data_section[addr] = 0
 
-    scratch_ret = GLOBAL_BASE + len(globals_map)
-    scratch_ptr = scratch_ret + 1
-    max_addr = scratch_ptr + 1
+    max_addr = current_global_offset + 1
     if len(data_section) < max_addr:
         data_section.extend([0] * (max_addr - len(data_section)))
 
@@ -530,7 +541,7 @@ def compile_print(expr: dict, ctx: CodegenContext) -> None:
             compile_print_cstr(expr, ctx)
             return
     compile_expr(expr, ctx)
-    ctx.emit(Opcode.OUT, AddressingMode.IMMEDIATE, 0)
+    ctx.emit(Opcode.OUT, AddressingMode.IMMEDIATE, 1)
 
 def compile_print_cstr(expr: dict, ctx: CodegenContext) -> None:
     compile_expr(expr, ctx)
@@ -540,7 +551,7 @@ def compile_print_cstr(expr: dict, ctx: CodegenContext) -> None:
     ctx.emit(Opcode.LD, AddressingMode.INDIRECT, ctx.env["scratch_ptr"])
     ctx.emit(Opcode.CMP, AddressingMode.IMMEDIATE, 0)
     jz_idx = ctx.emit(Opcode.JZ, AddressingMode.DIRECT, 0)
-    ctx.emit(Opcode.OUT, AddressingMode.IMMEDIATE, 0)
+    ctx.emit(Opcode.OUT, AddressingMode.IMMEDIATE, 1)
     ctx.emit(Opcode.LD, AddressingMode.DIRECT, ctx.env["scratch_ptr"])
     ctx.emit(Opcode.ADD, AddressingMode.IMMEDIATE, 1)
     ctx.emit(Opcode.ST, AddressingMode.DIRECT, ctx.env["scratch_ptr"])

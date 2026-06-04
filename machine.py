@@ -283,7 +283,10 @@ class Machine:
         elif sig.mux_b == 1: 
             alu_b = mem_data
         elif sig.mux_b == 2: 
-            alu_b = self.input_buffer.pop(0) if self.input_buffer else 0
+            if self.ex_arg == 0:
+                alu_b = self.input_buffer.pop(0) if self.input_buffer else 0
+            else:
+                alu_b = 0  
 
         # 4. ALU
         alu_out = 0
@@ -316,8 +319,9 @@ class Machine:
         if sig.mem_port == 2: 
             self._write_mem(mem_addr, data_in)
         if sig.mem_port == 4: 
-            self.output_buffer.append(alu_out)
-
+            if self.ex_arg == 1:
+                self.output_buffer.append(alu_out)
+                
         # 7. Condition Module
         take = False
         if sig.cond == 0: 
