@@ -35,9 +35,8 @@ Thumbs.db
 *.swp
 *.swo
 
-COMMANDS.md
-instructions_and_addresing.md
-micro_instraction.md
+*.md
+!README.md
 
 CU.xml
 DataPath.xml
