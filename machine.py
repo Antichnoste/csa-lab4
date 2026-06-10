@@ -228,7 +228,7 @@ class Machine:
             stall, flush = self.ex_stage()
 
         if self.if_id.valid and not stall:
-            stall = self.id_stage() or stall
+            self.id_stage()
 
         if not stall and not flush: 
             self.if_stage()
@@ -344,9 +344,9 @@ class Machine:
         elif sig.reg_en == 3: 
             self.sp = (self.sp - 1) & 0xFFFF
         elif sig.reg_en == 4 and take: 
-            self.pc = alu_out
+            self.pc = alu_out & 0x3FFFFF
         elif sig.reg_en == 5 and take: 
-            self.pc = alu_out
+            self.pc = alu_out & 0x3FFFFF
             self.sp = (self.sp - 1) & 0xFFFF
             
         if sig.alu_op == 6:
@@ -364,19 +364,18 @@ class Machine:
             self.upc = sig.next_micro_addr
             return True, False
 
-    def id_stage(self) -> bool:
+    def id_stage(self):
         inst = self.if_id.instruction
         self.id_ex.opcode, self.id_ex.mode, self.id_ex.arg = inst.opcode, inst.mode, inst.arg
         self.id_ex.pc = self.if_id.pc
         self.id_ex.valid = True
-        return False
 
     def if_stage(self):
         if self.pc < len(self.imem):
             self.if_id.instruction = self.imem[self.pc]
             self.if_id.pc = self.pc
             self.if_id.valid = True
-            self.pc += 1
+            self.pc = (self.pc + 1) & 0x3FFFFF
         else:
             self.if_id.valid = False
 
