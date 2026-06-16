@@ -35,13 +35,6 @@ Thumbs.db
 *.swp
 *.swo
 
-*.md
-!README.md
-
-CU.xml
-DataPath.xml
-DataPath_changed.xml
-
 *.txt
 *.bin
 *.asm

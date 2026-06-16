@@ -1,0 +1,116 @@
+<mxGraphModel dx="1030" dy="562" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    <mxCell id="Title" parent="1" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=16;" value="&lt;b&gt;Control Unit (Microcoded Logic)&lt;/b&gt;" vertex="1">
+      <mxGeometry height="30" width="300" x="140" y="20" as="geometry" />
+    </mxCell>
+    <mxCell id="IR" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;" value="&lt;b&gt;IR [Opcode &amp; Mode]&lt;/b&gt;&#xa;(8 + 2 bit)" vertex="1">
+      <mxGeometry height="50" width="160" x="240" y="80" as="geometry" />
+    </mxCell>
+    <mxCell id="Flags" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;" value="&lt;b&gt;ALU Flags&lt;/b&gt;&#xa;(Z, N)" vertex="1">
+      <mxGeometry height="50" width="120" x="791" y="80" as="geometry" />
+    </mxCell>
+    <mxCell id="AddrMapper" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f9f9;strokeColor=#000000;strokeWidth=2;" value="&lt;b&gt;Address Mapper&lt;/b&gt;&#xa;(Combinational)" vertex="1">
+      <mxGeometry height="60" width="160" x="240" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="e_ir_mapper" edge="1" parent="1" source="IR" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#000000;strokeWidth=2;" target="AddrMapper">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="CondMod" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f9f9;strokeColor=#000000;strokeWidth=2;" value="&lt;b&gt;Condition Module&lt;/b&gt;&#xa;(Combinational)" vertex="1">
+      <mxGeometry height="60" width="160" x="771" y="180" as="geometry" />
+    </mxCell>
+    <mxCell id="e_flags_cond" edge="1" parent="1" source="Flags" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#000000;strokeWidth=2;" target="CondMod">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="MUX_uPC" parent="1" style="shape=trapezoid;perimeter=trapezoidPerimeter;whiteSpace=wrap;html=1;direction=west;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;" value="&lt;b&gt;MUX&lt;/b&gt;" vertex="1">
+      <mxGeometry height="40" width="120" x="490" y="190" as="geometry" />
+    </mxCell>
+    <mxCell id="e_mapper_mux" edge="1" parent="1" source="AddrMapper" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#000000;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="MUX_uPC">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="460" y="210" />
+          <mxPoint x="460" y="170" />
+          <mxPoint x="520" y="170" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="uPC" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;" value="&lt;b&gt;Micro-PC&lt;/b&gt;&#xa;[Register]" vertex="1">
+      <mxGeometry height="50" width="120" x="490" y="270" as="geometry" />
+    </mxCell>
+    <mxCell id="e_mux_upc" edge="1" parent="1" source="MUX_uPC" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#000000;strokeWidth=2;" target="uPC">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="uROM" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f9f9f9;strokeColor=#000000;strokeWidth=2;" value="&lt;b&gt;Micro-ROM&lt;/b&gt;&#xa;(Combinational)" vertex="1">
+      <mxGeometry height="60" width="120" x="490" y="360" as="geometry" />
+    </mxCell>
+    <mxCell id="e_upc_urom" edge="1" parent="1" source="uPC" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#000000;strokeWidth=2;" target="uROM">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="CSG" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#000000;strokeWidth=2;" value="&lt;b&gt;Control Signal Decoder &amp; Router&lt;/b&gt;&#xa;(Combinational)&#xa;[ Latch Ctrl | ALU Op | MUX A, B, DATA | Mem/Port | Reg En | Cond | Next Addr ]" vertex="1">
+      <mxGeometry height="60" width="820" x="140" y="460" as="geometry" />
+    </mxCell>
+    <mxCell id="e_urom_csg" edge="1" parent="1" source="uROM" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#000000;strokeWidth=2;" target="CSG">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="t_decoded" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=2" value="Decoded Microinstruction" vertex="1">
+      <mxGeometry height="30" width="150" x="555" y="425" as="geometry" />
+    </mxCell>
+    <mxCell id="e_csg_cond" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#000000;strokeWidth=2;">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="852" y="350" />
+          <mxPoint x="852" y="350" />
+        </Array>
+        <mxPoint x="852.0000000000002" y="460" as="sourcePoint" />
+        <mxPoint x="852.0000000000002" y="240" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="t_cond" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=2" value="Cond Code [9:6]" vertex="1">
+      <mxGeometry height="30" width="110" x="841" y="325" as="geometry" />
+    </mxCell>
+    <mxCell id="e_csg_mux" edge="1" parent="1" source="CSG" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#000000;strokeWidth=2;" target="MUX_uPC">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="180" y="460" />
+          <mxPoint x="180" y="150" />
+          <mxPoint x="580" y="150" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="t_nextaddr" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=2" value="Next Addr [5:0]" vertex="1">
+      <mxGeometry height="30" width="100" x="144" y="325" as="geometry" />
+    </mxCell>
+    <mxCell id="e_cond_out" edge="1" parent="1" source="CondMod" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=light-dark(#000000, #ff8989);strokeWidth=2;dashed=1;exitX=1;exitY=0.5;">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1001" y="210" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="t_branch_ctrl" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=11;fontStyle=1;fontColor=#d32f2f;" value="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;to DataPath MUX PC&lt;/span&gt;" vertex="1">
+      <mxGeometry height="30" width="130" x="927" y="175" as="geometry" />
+    </mxCell>
+    <mxCell id="Busy_FF" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=light-dark(#c0c0c0, #331e1e);strokeColor=#000000;strokeWidth=2;" value="&lt;b&gt;Busy Flag&lt;/b&gt;&lt;br&gt;(Next != 0)" vertex="1">
+      <mxGeometry height="40" width="80" x="660" y="115" as="geometry" />
+    </mxCell>
+    <mxCell id="e_next_to_busy" edge="1" parent="1" source="CSG" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=#000000;strokeWidth=1.5;dashed=1;exitX=0.704;exitY=-0.029;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.708;entryY=0.985;entryDx=0;entryDy=0;entryPerimeter=0;" target="Busy_FF">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="717" y="240" />
+          <mxPoint x="717" y="240" />
+        </Array>
+        <mxPoint x="700" y="370" as="sourcePoint" />
+        <mxPoint x="717" y="160" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="e_busy_to_mux" edge="1" parent="1" source="Busy_FF" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;strokeColor=light-dark(#000000, #ff8989);strokeWidth=1.5;dashed=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="MUX_uPC">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="700" y="210" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="t_sel_busy" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=10;fontStyle=2;fontColor=#d32f2f" value="&lt;span style=&quot;color: rgb(0, 0, 0);&quot;&gt;Sel&lt;/span&gt;" vertex="1">
+      <mxGeometry height="30" width="40" x="640" y="190" as="geometry" />
+    </mxCell>
+  </root>
+</mxGraphModel>
