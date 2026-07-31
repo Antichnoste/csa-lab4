@@ -1,4 +1,4 @@
-# csa_lab4
+# pipelined-lisp-cpu
 
 - ФИО: `Караганов Павел Эдуардович P3210`
 - Вариант: `lisp | acc | harv | mc | tick | binary | stream | port | cstr | prob1 | pipeline`
